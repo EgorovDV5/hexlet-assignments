@@ -13,8 +13,6 @@ class Url
     @params = set_params(@address)
   end
 
-  def_delegators @address, :scheme, :host, :port
-
   def query_params()
     @params
   end
@@ -24,12 +22,11 @@ class Url
   end
 
   def <=>(url2)
-    if url2.scheme == url.scheme && url2.host == url.host && url2.port == url.port && url2.params.sort == url.params.sort
-      return true
-    else
-      return false
-    end 
+    return true if url2.scheme == url.scheme && url2.host == url.host && url2.port == url.port && url2.params.sort == url.params.sort
+    false 
   end
+
+  def_delegators @address, :scheme, :host, :port
 
   private
   def set_params(address)
