@@ -5,13 +5,16 @@ require 'uri'
 # BEGIN
 class Url
   extend Forwardable
-  
+  include Comparable
+
   attr_reader :address
   
   def initialize(url)
     @address = URI(url)
     @params = set_params(@address)
   end
+  
+  def_delegators :address, :scheme, :host, :port
 
   def query_params()
     @params
@@ -21,27 +24,17 @@ class Url
     @params.fetch(key, value)
   end
 
-  def ==(url2)
-    if url2.scheme == self.scheme && 
-       url2.host == self.host && 
-       url2.port == self.port && 
-       url2.query_params.sort == self.query_params.sort
-    return true
-    else
-      return false
-    end
+  def <=>(url2)
+    [scheme, host, port, query_params] <=> [url2.scheme, url2.host, url2.port, url2.query_params]
   end
-
-  def_delegators :address, :scheme, :host, :port
 
   private
   def set_params(address)
     return {} if !address.to_s.include? '?'
     params = address.to_s.split('?').last.split('&')
     params.each_with_object({}) do |param, acc|
-      args = param.split('=')
-      acc[args.first.to_sym] ||= nil
-      acc[args.first.to_sym] = args.last
+      key, value = param.split '='
+      acc[key.to_sym] = value
     end
   end
 end
