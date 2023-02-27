@@ -24,10 +24,7 @@ class Url
   end
 
   def <=>(url2)
-    if (url2.scheme == url.scheme 
-      && url2.host == url.host
-      && url2.port == url.port
-      && url2.params.sort == url.params.sort)
+    if url2.scheme == url.scheme && url2.host == url.host && url2.port == url.port && url2.params.sort == url.params.sort
       return true
     else
       return false
