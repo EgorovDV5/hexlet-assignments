@@ -1,75 +1,66 @@
 # frozen_string_literal: true
 
 # BEGIN
+require 'date'
+
 module Model
 
     def self.included(base)
+      base.attr_reader :attributes
       base.extend ClassMethods
     end
   
-    def initialize(attributes = {})
-      set_attributes(attributes)
-    end
-
-    def attributes
-      self.instance_variables.each_with_object({}) { |variable, attributes| 
-        name = variable[1..-1]
-        attributes[name.to_sym] = send("#{name}") }
+    def initialize(attrs = {})
+      @attributes = {}
+      set_attributes(attrs)
     end
 
     module ClassMethods
-      
-      def attribute(name, options = {})
-        
-        type = options.fetch(:type, nil)
-        default = options.fetch(:default, nil)
 
-        instance_variable_set "@#{name}", default
-        
-        # Get
-        define_method name do
-          value = instance_variable_get "@#{name}"
-          coerce(value, type)
-        end
-        # Set
-        define_method "#{name}=" do |value|
-          instance_variable_set "@#{name}", value
-        end
-        
+      def attribute_options
+        @attribute_options || {}
       end
       
+      def attribute(name, options = {})
+        @attribute_options ||= {}
+        attribute_options[name] = options
+        
+
+        define_method :"#{name}" do
+          @attributes[name]
+        end
+
+        define_method :"#{name}=" do |value|
+          write_attribute(name, value)
+        end
+      end
+
+      def convert(value, type)
+        return value if value.nil?
+        case type
+          when :string then String value
+          when :integer then Integer value
+          when :datetime then DateTime.parse value
+          when :boolean then !!value
+          else value
+        end
+      end
+      
+    end
+
+    def write_attribute(name, value)
+      options = self.class.attribute_options[name]
+      @attributes[name] = self.class.convert(value, options[:type])
     end
   
     private 
-    def set_attributes(attributes)
-      self.class.instance_variables.each { |variable| 
-        name = variable[1..-1]
-        default = self.class.instance_variable_get "@#{name}"
-        send("#{name}=", default)
-        }
-      
-      attributes.each_pair { |name, value| send("#{name}=", value) }
-    end
-  
-    def coerce(value, type)
-      return value if type.nil?
-      return nil if value.nil?
-      
-      case type.to_s.capitalize
-        when "String" then value.to_s
-        when "Boolean" then
-            if value.is_a?(TrueClass) || value.is_a?(FalseClass)
-                value
-            elsif value.is_a?(NilClass)
-                false
-            else
-                value.to_s.downcase == "true" || value.to_s.downcase == "1"
-            end
-        when "Integer" then value.to_i
-        when "Datetime" then DateTime.parse(value)
-        else value
+    def set_attributes(attrs)
+      self.class.attribute_options.each do |name, options|
+        default = options.fetch(:default, nil)
+        value = attrs.key?(name) ? attrs[name] : default
+        write_attribute(name, value)
       end
     end
-  
+
   end
 # END
